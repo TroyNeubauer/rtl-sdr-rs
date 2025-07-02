@@ -8,7 +8,7 @@
 mod device;
 pub mod error;
 mod rtlsdr;
-mod tuners;
+pub mod tuners;
 
 use device::Device;
 use device::KNOWN_DEVICES;
