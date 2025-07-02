@@ -1,22 +1,24 @@
-use rtlsdr_rs::{error::Result, RtlSdr};
+use seify_rtlsdr::{error::Result, RtlSdr};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 const DEFAULT_BUF_LENGTH: usize = 16 * 16384;
 
+const DEVICE_INDEX: usize = 0;
 const SAMPLE_RATE: u32 = 2_048_000;
 
 fn main() -> Result<()> {
-    let devices = rtlsdr_rs::enumerate()?;
+    let devices = seify_rtlsdr::enumerate()?;
     println!("devices: {devices:?}");
 
     // Create shutdown flag and set it when ctrl-c signal caught
-    static shutdown: AtomicBool = AtomicBool::new(false);
+    static SHUTDOWN: AtomicBool = AtomicBool::new(false);
     ctrlc::set_handler(|| {
-        shutdown.swap(true, Ordering::Relaxed);
-    });
+        SHUTDOWN.swap(true, Ordering::Relaxed);
+    })
+    .expect("Failed to set shutdown handler");
 
     // Open device
-    let mut sdr = RtlSdr::open(0).expect("Unable to open SDR device!");
+    let mut sdr = RtlSdr::open(DEVICE_INDEX).expect("Unable to open SDR device!");
     // println!("{:#?}", sdr);
 
     let gains = sdr.get_tuner_gains()?;
@@ -44,7 +46,7 @@ fn main() -> Result<()> {
     println!("Reading samples in sync mode...");
     let mut buf: [u8; DEFAULT_BUF_LENGTH] = [0; DEFAULT_BUF_LENGTH];
     loop {
-        if shutdown.load(Ordering::Relaxed) {
+        if SHUTDOWN.load(Ordering::Relaxed) {
             break;
         }
         let n = sdr.read_sync(&mut buf);

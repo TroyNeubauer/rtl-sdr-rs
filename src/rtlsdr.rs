@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::{DirectSampleMode, TunerGain};
 use crate::device::{
     Device, BLOCK_SYS, BLOCK_USB, DEMOD_CTL, DEMOD_CTL_1, EEPROM_SIZE, GPD, GPO, GPOE, USB_EPA_CTL,
@@ -112,8 +116,8 @@ impl RtlSdr {
         self.handle.demod_write_reg(1, 0x15, 0x01, 1)?;
 
         // Hack to force the Bias T to always be on if we set the IR-Endpoint bit in the EEPROM to 0. Default on EEPROM is 1.
-        let buf: [u8; EEPROM_SIZE] = [0; EEPROM_SIZE];
-        self.handle.read_eeprom(&buf, 0, EEPROM_SIZE)?;
+        let mut buf: [u8; EEPROM_SIZE] = [0; EEPROM_SIZE];
+        self.handle.read_eeprom(&mut buf, 0, EEPROM_SIZE)?;
         if buf[7] & 0x02 != 0 {
             inner.deref().borrow_mut().force_bt = false;
         } else {
@@ -405,7 +409,7 @@ impl RtlSdr {
         // in software that doesn't have specified bias tee support.
         // Offset tuning is not used for R820T devices so it is no problem.
         #[cfg(feature = "rtl_sdr_blog")]
-        self.set_gpio(0, enable)?;
+        self.set_gpio(0, _enable)?;
 
         // TODO: implement the rest when we support tuners beyond R82xx
         Ok(())

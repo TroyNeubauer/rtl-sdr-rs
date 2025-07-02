@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 pub mod constants;
 pub use constants::*;
 pub mod device_handle;
@@ -123,11 +127,11 @@ impl Device {
         self.handle.read_bulk(0x81, buf, Duration::ZERO)
     }
 
-    pub fn read_eeprom(&self, data: &[u8], offset: u8, len: usize) -> Result<usize> {
+    pub fn read_eeprom(&self, data: &mut [u8], offset: u8, len: usize) -> Result<usize> {
         assert!((len + offset as usize) <= EEPROM_SIZE);
         self.write_array(BLOCK_IIC, EEPROM_ADDR, &[offset], 1)?;
-        for i in data.iter().take(len) {
-            self.read_array(BLOCK_IIC, EEPROM_ADDR, &mut [*i], 1)?;
+        for i in 0..len {
+            self.read_array(BLOCK_IIC, EEPROM_ADDR, &mut data[i..i+1], 1)?;
         }
         Ok(len)
     }

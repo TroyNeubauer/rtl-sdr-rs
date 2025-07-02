@@ -1,11 +1,15 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use std::time::Duration;
 
 use crate::error::Result;
 use crate::error::RtlsdrError::RtlsdrErr;
+use log::info;
 use rusb::{Context, UsbContext};
 
 use super::KNOWN_DEVICES;
-
 #[derive(Debug)]
 pub struct DeviceHandle {
     handle: rusb::DeviceHandle<Context>,
@@ -16,28 +20,57 @@ impl DeviceHandle {
         let handle = DeviceHandle::open_device(&mut context, index)?;
         Ok(DeviceHandle { handle })
     }
-
     pub fn open_device<T: UsbContext>(
         context: &mut T,
-        mut index: usize,
+        index: usize,
     ) -> Result<rusb::DeviceHandle<T>> {
-        let devices = context.devices()?;
+        let devices = context.devices().map_err(|e| {
+            info!("Failed to get devices: {:?}", e); // Logging with info!
+            RtlsdrErr(format!("Error: {:?}", e))
+        })?;
 
-        for found in devices.iter() {
-            let device_desc = found.device_descriptor()?;
+        let mut device_count = 0;
+
+        // Iterate through the devices and check their descriptors
+        for (i, found) in devices.iter().enumerate() {
+            let device_desc = match found.device_descriptor() {
+                Ok(desc) => desc,
+                Err(e) => {
+                    info!("Failed to get device descriptor for device {}: {:?}", i, e); // Logging with info!
+                    continue;
+                }
+            };
+
             for dev in KNOWN_DEVICES.iter() {
                 if device_desc.vendor_id() == dev.vid && device_desc.product_id() == dev.pid {
-                    if index == 0 {
-                        let mut dev = found.open()?;
+                    info!(
+                        "Found device at index {} Vendor ID = {:04x}, Product ID = {:04x}",
+                        i,
+                        device_desc.vendor_id(),
+                        device_desc.product_id()
+                    );
+
+                    if device_count == index {
+                        info!("Opening device at index {}", index); // Logging with info!
+                        let dev = found.open().map_err(|e| {
+                            info!("Failed to open device: {:?}", e); // Logging with info!
+                            RtlsdrErr(format!("Error: {:?}", e))
+                        })?;
+
                         dev.set_auto_detach_kernel_driver(true).ok();
                         return Ok(dev);
-                    } else {
-                        index -= 1;
                     }
+                    device_count += 1;
                 }
             }
         }
-        Err(RtlsdrErr("No device found".to_string()))
+
+        info!(
+            "No matching device found at the requested index {}. Total matched devices: {}",
+            index, device_count
+        ); // Logging with info!
+
+        Err(RtlsdrErr(format!("No device found at index {}", index)))
     }
 
     pub fn claim_interface(&mut self, iface: u8) -> Result<()> {

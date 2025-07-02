@@ -12,6 +12,7 @@ exclude = ["*.bin"]
 [features]
 default = []
 rtl_sdr_blog = []
+disable-simd = []
 
 [dependencies]
 byteorder = "1"
@@ -27,3 +28,4 @@ byteorder = "1"
 ctrlc = "3.2.3"
 num-complex = "0.4"
 stderrlog = "0.5"
+criterion = "0.5.1"

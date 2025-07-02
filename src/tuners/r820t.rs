@@ -1,3 +1,7 @@
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 use super::{Tuner, TunerGain, TunerInfo};
 use crate::device::Device;
 use crate::error::Result;
@@ -692,7 +696,7 @@ impl R820T {
         let mixer_top;
         let lna_top;
         let cp_cur;
-        let div_buf_cur;
+        let mut div_buf_cur;
         let lna_vth_l;
         let mixer_vth_l;
         let air_cable1_in;
@@ -973,8 +977,8 @@ impl R820T {
 
     /// Read register data from local cache
     /// # Panics
-    ///     * reg < RW_REG_START
-    ///     * reg > NUM_REGS
+    /// * If `reg` is less than `RW_REG_START`
+    /// * If `reg` is greater than `NUM_REGS`
     fn read_cache_reg(&self, reg: usize) -> u8 {
         assert!(reg >= RW_REG_START); // is assert the best thing to use here?
         let index = reg - RW_REG_START;
